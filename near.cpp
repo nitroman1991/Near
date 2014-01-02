@@ -1,9 +1,9 @@
 #include <iostream>
 #include <vector>
 #include <algorithm>
-#include <conio.h>
 #include <assert.h>
 #include <fstream>
+#include <map>
 #include "near.h"
 #include "Point.h"
 
@@ -13,6 +13,7 @@ using Nearest::Point;
 using std::vector;
 using std::sort;
 using std::pair;
+using std::multimap;
 
 namespace Nearest {
 
@@ -29,10 +30,21 @@ vector<Point>::iterator find_place(Point const &p, vector<Point> &target)
     return ++i;	//иначе - выдаем первую точку, строго большую по y координате
 }
 
-void copy(vector<Point>::iterator first, vector<Point>::iterator last, vector<Point> &y)
+void copy_multimap(std::map<double, Point>::iterator first, std::map<double, Point>::iterator last, vector<Point> &y)
 {
     y.clear();
-    vector<Point>::iterator ptr = first;
+    std::map<double, Point>::iterator ptr = first;
+    while(ptr != last)
+    {
+        y.push_back(ptr -> second);
+        ++ptr;
+    }	//аналог std::copy, только там уже выделена память под новый вектор, а тут - еще нет.
+}
+
+void copy_vector(std::vector<Point>::iterator first, std::vector<Point>::iterator last, vector<Point> &y)
+{
+    y.clear();
+    std::vector<Point>::iterator ptr = first;
     while(ptr != last)
     {
         y.push_back(*ptr);
@@ -49,18 +61,20 @@ inline bool is_equal(pair<Point, Point> pr)
 bool sort_by_x(Point a, Point b) {return (a.x < b.x || (a.x == b.x && a.y < b.y));}
 bool sort_by_y(Point a, Point b) {return (a.y < b.y || (a.y == b.y && a.x < b.x));}
 
-void save_data(vector<Point> const &data, const char* filename)
+int save_data(std::map<double, Point> const &data, const char* filename)
 {
     std::ofstream ofile;
     ofile.open(filename, std::ios::out);
     assert(ofile.is_open());
+
     ofile << data.size() << " " << std::endl;
-    for(vector<Point>::const_iterator i = data.begin(); i != data.end(); ++i)
-        ofile << i -> x << " " << i -> y << std::endl;
+    for(std::map<double, Point>::const_iterator i = data.begin(); i != data.end(); ++i)
+        ofile << i -> second.x << " " << i -> second.y << std::endl;
     ofile.close();
+    return ofile.is_open();
 }
 
-void load_data(vector<Point> &data, char const *filename)
+void load_data(std::map<double, Point> &data, std::vector<double> &keys, const char *filename)
 {
     int num_points = 0;
     int a = 0;
@@ -75,7 +89,9 @@ void load_data(vector<Point> &data, char const *filename)
     for (int i = 0; i < num_points; i++)
     {
         ifile >> a >> b;
-        data.push_back(Point(a, b));
+        double key = give_key(Point(a, b));
+        data.insert(std::make_pair(key, Point(a, b)));
+        keys.push_back(key);
     }
 
 }
@@ -85,25 +101,25 @@ PTS::PTS() : by_x(), by_y()
 
 }
 
-PTS::PTS(vector<Point> &data)
+PTS::PTS(std::map<double, Point> &data)
 {
-        Nearest::copy(data.begin(), data.end(), by_x);//.begin());
-        Nearest::copy(data.begin(), data.end(), by_y);//.begin());
+        Nearest::copy_multimap(data.begin(), data.end(), by_x);
+        Nearest::copy_multimap(data.begin(), data.end(), by_y);
         sort(by_x.begin(), by_x.end(), sort_by_x);
         sort(by_y.begin(), by_y.end(), sort_by_y);
 }//основной конструктор - применим однажды при передаче списка исходных вершин(сортируем один раз)
 
 PTS::PTS(pair<vector<Point>::iterator, vector<Point>::iterator> x, vector<Point> &y)
 {
-    Nearest::copy(x.first, x.second, by_x);
-    Nearest::copy(y.begin(), y.end(), by_y);
+    Nearest::copy_vector(x.first, x.second, by_x);
+    Nearest::copy_vector(y.begin(), y.end(), by_y);
 }//конструктор для случая, когда уже выделили подпоследовательности x и у для подзадач.(сортировка в этом случае не требуется)
 
 void PTS::make_left_task(pair<vector<Point>::iterator, vector<Point>::iterator> &x, Point &median, vector<Point> &y)
 {
     by_y.clear();
 
-    Nearest::copy(x.first, x.second, by_x);
+    Nearest::copy_vector(x.first, x.second, by_x);
     for(vector<Point>::iterator i = y.begin(); i != y.end(); ++i)
         if(i -> x < median.x || (i -> x == median.x && i -> y < median.y)) by_y.push_back(*i);
 }//делаем левую подзадачу
@@ -112,7 +128,7 @@ void PTS::make_right_task(pair<vector<Point>::iterator, vector<Point>::iterator>
 {
     by_y.clear();
 
-    Nearest::copy(x.first, x.second, by_x);
+    Nearest::copy_vector(x.first, x.second, by_x);
     for(vector<Point>::iterator i = y.begin(); i != y.end(); ++i)
         if(i -> x > median.x || (i -> x == median.x && i -> y >= median.y)) by_y.push_back(*i);
 }//делаем левую подзадачу

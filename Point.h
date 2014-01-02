@@ -15,6 +15,9 @@ struct Point {
         this -> x = x;
         this -> y = y;
     }
+    bool operator< (Point &b){
+        return (x < b.x || (x == b.x && y < b.y));
+    }
 
     Point operator + (Point& p) {
         Point r;
@@ -69,6 +72,8 @@ struct Point {
             return true;
     }
 };
+
+double give_key(Point const &a);
 
 }
 

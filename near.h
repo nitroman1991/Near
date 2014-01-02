@@ -10,7 +10,7 @@ using Nearest::Point;
 using std::vector;
 using std::sort;
 using std::pair;
-
+using std::multimap;
 
 namespace Nearest {
 
@@ -18,7 +18,9 @@ void print(int i);
 
 vector<Point>::iterator find_place(Point const &p, vector<Point> &target);
 
-void copy(vector<Point>::iterator first, vector<Point>::iterator last, vector<Point> &y);
+void copy_multimap(std::map<double, Point>::iterator first, std::map<double, Point>::iterator last, vector<Point> &y);
+
+void copy_vector(std::map<double, Point>::iterator first, std::map<double, Point>::iterator last, vector<Point> &y);
 
 inline bool is_equal(pair<Point, Point> pr);
 
@@ -26,15 +28,15 @@ bool sort_by_x(Point a, Point b);
 
 bool sort_by_y(Point a, Point b);
 
-void save_data(vector<Point> const &data, const char* filename);
+int save_data(std::map<double, Point> const &data, const char* filename);
 
-void load_data(vector<Point> &data, char const *filename);
+void load_data(std::map<double, Point> &data, std::vector<double> &keys, char const *filename);
 
 class PTS{
 public:
     PTS();
 
-    PTS(vector<Point> &data);
+    PTS(std::map<double, Point> &data);
 
     PTS(pair<vector<Point>::iterator, vector<Point>::iterator> x, vector<Point> &y);
 

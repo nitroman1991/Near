@@ -5,13 +5,16 @@
 #include <iostream>
 #include <fstream>
 #include <assert.h>
+#include <map>
 
-#include "Point.h"
 #include "near.h"
+#include "Point.h"
 #include "GLWidget.h"
 
 using namespace std;
 using namespace Nearest;
+
+
 
 int windowWidth;
 int windowHeight;
@@ -20,7 +23,8 @@ int worldHeight;
 Point worldPosition(0,0);
 Point mousePosition(0,0);
 
-std::vector<Nearest::Point> points;
+std::vector<double> keys;
+std::map<double, Nearest::Point> points;
 std::vector<std::pair<Nearest::Point, Nearest::Point> > result;
 bool drawHelp = true;
 bool new_draw = true;
@@ -35,6 +39,8 @@ QString zoom;
 QString help;
 QString sExit;
 QString res;
+
+
 
 GLWidget::GLWidget(QWidget *parent) : QGLWidget(parent) {
     setMouseTracking(true);
@@ -99,10 +105,9 @@ void GLWidget::paintGL() {
     glColor4f(1,0,0,1);
     glPointSize(5);
 
-    int numPoints = points.size();
     glBegin(GL_POINTS);
-    for (int i = 0; i < numPoints; i++)
-        glVertex2d(points[i].x, points[i].y);
+    for (std::map<double, Point>::iterator i = points.begin(); i != points.end(); ++i)
+        glVertex2d(i -> second.x, i -> second.y);
     glEnd();
 
     glColor3f(1, 1, 0);
@@ -122,6 +127,7 @@ void GLWidget::paintGL() {
     glColor4f(1,0,0,1);
 
     QString mousePos;
+
     QTextStream(&mousePos) << "(" << mousePosition.x << "," << mousePosition.y << ")" << "__" << worldWidth << ", " << worldHeight;
     renderText(10, 20, mousePos);
 
@@ -140,7 +146,9 @@ void GLWidget::paintGL() {
 }
 
 void GLWidget::mousePressEvent(QMouseEvent *event) {
-    points.push_back(mousePosition);
+
+    keys.push_back(Nearest::give_key(mousePosition));
+    points.insert(std::make_pair<double, Point>(Nearest::give_key(mousePosition), mousePosition));
     new_draw = true;
     repaint();
 }
@@ -151,8 +159,6 @@ void GLWidget::mouseMoveEvent(QMouseEvent *event) {
 }
 
 void GLWidget::keyPressEvent(QKeyEvent* event) {
-    ofstream ofile;
-    ifstream ifile;
 
     switch(event->key()) {
     case Qt::Key_C:
@@ -161,19 +167,24 @@ void GLWidget::keyPressEvent(QKeyEvent* event) {
         repaint();
         break;
     case Qt::Key_D:
-        if (points.size() != 0)
+        if (points.size() != 0 && keys.size() != 0)
         {
-            points.pop_back();
+            double key = keys.back();
+            points.erase(key);
+            keys.pop_back();
+
             repaint();
         }
         new_draw = true;
         break;
     case Qt::Key_S:
-        Nearest::save_data(points, "data.txt");
+        QTextStream(&save) << "enter " << Nearest::save_data(points, "D:\data.txt");
+        repaint();
         break;
-    case Qt::Key_O:
+    case Qt::Key_L:
         points.clear();
-        Nearest::load_data(points, "data.txt");
+        Nearest::load_data(points, keys, "D:\data.txt");
+        repaint();
         break;
     case Qt::Key_Space:
        if(points.size() > 1 && new_draw == true)
@@ -182,7 +193,7 @@ void GLWidget::keyPressEvent(QKeyEvent* event) {
             result.clear();
             result.push_back(data.nearest());
             res.clear();
-            QTextStream(&res) << "First point: " << result.front().first.x << "," << result.front().first.y << " ,second point: " << result.front().second.x << "," << result.front().second.y;
+            QTextStream(&res) << "Nearest pair: (" << result.front().first.x << "," << result.front().first.y << ") <--> (" << result.front().second.x << "," << result.front().second.y << ")";
 
             new_draw = false;
         }

@@ -2,9 +2,15 @@
 #include <QtOpenGL/QGLWidget>
 #include <QDesktopWidget>
 #include "GLWidget.h"
-//#include "Point.h"
+#include "Point.h"
+#include <set>
+#include <iostream>
 
 using namespace std;
+using Nearest::Point;
+
+
+
 
 int main(int argc, char *argv[]){
         QApplication app(argc, argv);
@@ -19,5 +25,5 @@ int main(int argc, char *argv[]){
 
         return app.exec();
 
-    return 0;
+        return 0;
 }
